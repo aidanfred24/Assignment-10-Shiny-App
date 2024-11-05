@@ -1,4 +1,5 @@
 Project Title: CrashDataApp
+
     Project Description:
 
         CrashDataApp is a Shiny Web Application used for the visualization of Traffic Accident Fatality Data from 2021.

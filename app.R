@@ -7,17 +7,31 @@
 #    http://shiny.rstudio.com/
 #
 
-# library for shiny and theme
+# library for shiny
 library(shiny)
+
+# Plotting and interactive plots
 library(ggplot2)
 library(ggiraph)
+
+# data maniputlation
 library(tidyverse)
+
+# geographic data
 library(mapdata)
+
+# text editing
 library(stringr)
+
+# color palettes for graphs
 library(RColorBrewer)
 library(paletteer)
+
+# satellite interactive maps and shapefiles
 library(tmap)
 library(sf)
+
+# packages for theming and ui
 library(bslib)
 library(gridlayout)
 library(shinycssloaders)
@@ -382,7 +396,8 @@ server <- function(input, output, session) {
         
       # generate ggiraph plot
       girafe(ggobj = us_map, 
-             options = list(opts_hover(css = "fill:green;stroke:black")))
+             options = list(opts_hover(css = "fill:green;stroke:black"),
+                            opts_selection(type = "none")))
   
     } else {
         
@@ -447,7 +462,8 @@ server <- function(input, output, session) {
       
       # generate ggiraph plot
       girafe(ggobj = county_map,
-             options = list(opts_hover(css = "fill:green;stroke:black")))
+             options = list(opts_hover(css = "fill:green;stroke:black"),
+                            opts_selection(type = "none")))
     }
     
   })
@@ -539,7 +555,8 @@ server <- function(input, output, session) {
       
     # generate ggiraph plot
     girafe(ggobj = w_plot,
-           options = list(opts_hover(css = "fill:green;stroke:black")))
+           options = list(opts_hover(css = "fill:green;stroke:black"),
+                          opts_selection(type = "none")))
     
     
   })

@@ -10,27 +10,30 @@
 # library for shiny and theme
 library(shiny)
 library(shinythemes)
-
-#libraries for simple interactive plots
 library(ggplot2)
 library(ggiraph)
-
-#Data pipelining
 library(tidyverse)
-
-# map data for ggiraph map plots
 library(mapdata)
-
-#Text conversion
 library(stringr)
-
-#Fancy Colors
 library(RColorBrewer)
 library(paletteer)
-
-# More complex geographic plots
 library(tmap)
 library(sf)
+library(bslib)
+library(gridlayout)
+
+#libraries for simple interactive plots
+
+#Data pipelining
+
+# map data for ggiraph map plots
+
+#Text conversion
+
+#Fancy Colors
+
+# More complex geographic plots
+
 
 # Load data
 accident3 <- read_sf("accident3.shp")
@@ -52,11 +55,11 @@ fill_choice <- setNames(c("fatalcase", "prop", "count"),
                         c("Fatalities Per Case", "% of Fatalities", "Total Cases"))
 
 fill_choice2 <- setNames(c("fatalcase", "prop", "count"),
-                        c("Fatalities", "Fatalities (%)", "Cases"))
+                        c("Fatalities", "Percent", "Cases"))
 
-subject_choice <- setNames(c("DAY_WEEKNAME", "LGT_CONDNAME", 
+subject_choice <- setNames(c("Total", "DAY_WEEKNAME", "LGT_CONDNAME", 
                            "ROUTENAME", "WEATHERNAME"),
-                           c("Day of Week", "Light Condition",
+                           c("Total","Day of Week", "Light Condition",
                              "Road Type", "Weather Condition"))
 
 road_choices <- unique(accident3$ROUTENA)
@@ -67,169 +70,231 @@ fill_choice3 <- setNames(c("MONTHNA", "DAY_WEE", "WEATHER"),
 #------------------------------------
 
 # App UI
-ui <- fluidPage(
+ui <- page_navbar(
   
   # Theme choice
-  theme = shinytheme("sandstone"),
-
+  theme = bs_theme(primary = "#000000", 
+                   preset = "materia"),
+  
   # Application title
-  titlePanel("Traffic Accident Data (2021)"),
+  title = "Traffic Accident Data (2021)",
   
-  # Add name below title
-  tags$p(" Created by Aidan Frederick", 
-         style = "color: gray; font-size: 12px; text-align: left; margin-top: -5px;"),
-  
-  # Navigation bar format
-    navbarPage(
-      "Navigation",
+  inverse = TRUE,
       
       #First map tab
-        tabPanel("Map", 
-          sidebarLayout(
-            
-            # Display user input for location
-            sidebarPanel(selectInput(inputId = "Location1",
-                                     label = "Location",
-                                     choices = c("United States", 
-                                                 state_choices)),
-                         # Conditional panel for US map
-                         conditionalPanel(
-                           condition = "input.Location1 == 'United States'",
-                         
-                         selectInput(inputId = "Subject",
-                                     label = "Subject",
-                                     choices = subject_choice),
-                         
-                         uiOutput("sub_subjects")),
-                     
-                         # Buttons for user selection of stats
-                         radioButtons(inputId = "Fill",
-                                      label = "Statistics",
-                                      choices = fill_choice),
-                     ),
+      nav_panel("Map",
+                
+                page_sidebar(    
+                  sidebar = sidebar(selectInput(inputId = "Location1",
+                                                label = "Location",
+                                                choices = c("United States",
+                                                            state_choices)),
+                                    # Conditional panel for US map
+                                    conditionalPanel(
+                                      condition = "input.Location1 == 'United States'",
+                                      
+                                      selectInput(inputId = "Subject",
+                                                  label = "Subject",
+                                                  choices = subject_choice),
+                                      
+                                      conditionalPanel(
+                                        condition = "input.Subject != 'Total'",
+                                        uiOutput("sub_subjects")
+                                      )
+                                    ),
+                                    
+                                    # Buttons for user selection of stats
+                                    radioButtons(inputId = "Fill",
+                                                 label = "Statistics",
+                                                 choices = fill_choice),
+                  ),
+                  
+                  # plot map on main panel
+                  # plot output
+                  girafeOutput("location", height = "85vh") %>%
+                    tags$div(
+                      style = "border: 1px solid #D3D3D3; padding: 15px; border-radius: 5px; background-color: #FFFFFF;")
+                ))
+      ,
   
-          # plot map on main panel
-          mainPanel(
-            
-            #wrap grey box around the map
-            tags$div(
-            style = "border: 1px solid #D3D3D3; padding: 15px; border-radius: 5px; background-color: #FFFFFF;",
-            
-            # plot output
-            girafeOutput("location", width = "90%")
-          ))
+  nav_panel(
+    title = "Profile",
+    page_sidebar(
+      sidebar = sidebar(
+        title = "Filters/Info",
+        
+        # multiple select for location data
+        selectizeInput(inputId = "Location2",
+                       label = "Location(s)",
+                       choices = state_choices,
+                       multiple = TRUE,          #allows for multiple inputs
+                       selected = c("alabama",
+                                    "california",
+                                    "arizona")),
+        
+        # input to modify y-axis of trendline
+        selectInput(inputId = "monthStat",
+                     label = "Trend Metric",
+                     choices = fill_choice)
+            ),
+      # Define layout of entire page
+      grid_container(
+        # area layout of page (3 on top, 1 on bottom)
+        layout = c(
+          "area1 area2 area3",
+          "area0 area0 area0"
+        ),
+        
+        # dimensions of top vs. bottom row
+        row_sizes = c(
+          "0.5fr",
+          "1.68fr"
+        ),
+        
+        # dimensions of grid columns (even along the top)
+        col_sizes = c(
+          "1fr",
+          "1fr",
+          "1fr"
+        ),
+        
+        # gaps between grid elements
+        gap_size = "10px",
+        
+        # grid on bottom half of page
+        grid_card(
+          area = "area0",
+          card_body(
+            grid_container(
+              layout = c(
+                "area0 area1"
+              ),
+              # one row on bottow
+              row_sizes = c(
+                "1fr"
+              ),
+              # two columns for two plots
+              col_sizes = c(
+                "1fr",
+                "1fr"
+              ),
+              # gaps between bottom grid elements
+              gap_size = "10px",
+              
+              # card for first plot
+              grid_card(
+                area = "area0",
+                
+                # display plot
+                card_body(girafeOutput(outputId = "Weather", height = "53vh"))
+              ),
+              
+              # card for second plot
+              grid_card(
+                area = "area1",
+                
+                # display plot
+                card_body(girafeOutput(outputId = "Month", height = "53vh"))
+              )
+            )
           )
         ),
         
-        # tab for weather histograms
-        tabPanel("Weather",
-                 
-                 sidebarLayout(
-                   sidebarPanel(selectInput(inputId = "Location2",label = "Location",
-                                            choices = state_choices),
-                   ),
-                   
-                   # Show a plot of the generated distribution
-                   mainPanel(
-                     
-                     # wrap plot in grey box
-                     tags$div(
-                     style = "border: 1px solid #D3D3D3; padding: 15px; border-radius: 5px; background-color: #FFFFFF;",
-                     
-                     #plot output
-                     girafeOutput("Weather", width = "90%")
-                   ))
-               
-               )),
-      
-      # Tab for timeline of accidents by month and state
-      tabPanel("Month",
+        # Top left grid card
+        grid_card(
+          area = "area1",
+          card_body(
+            value_box(
+              title = "Average Fatalities per Month",
+              value = textOutput(outputId = "textOutput1"),                    #display dynamic text output
+              showcase = bsicons::bs_icon("car-front-fill", fill = "#000000")  #add icon to left
+            )
+          )
+        ),
         
-        sidebarLayout(
-          sidebarPanel(selectInput(inputId = "Location3",label = "Location",
-                                   choices = state_choices),
-          ),
-          
-          mainPanel(
-            # wrap plot in grey box
-            tags$div(
-              style = "border: 1px solid #D3D3D3; padding: 15px; border-radius: 5px; background-color: #FFFFFF;",
-              
-              # Display plot
-              girafeOutput("Month", width = "90%")
+        # middle grid card
+        grid_card(
+          area = "area2",
+          card_body(
+            value_box(
+              title = "Top Weather Hazard for Traffic Fatalities",
+              value = textOutput(outputId = "textOutput2"),             #display dynamic text output
+              showcase = bsicons::bs_icon("sun-fill", fill = "#000000") #add icon
+            )
+          )
+        ),
         
-      )
+        #top right grid card
+        grid_card(
+          area = "area3",
+          card_body(
+            value_box(
+              title = "Top Month for Traffic Fatalities",
+              value = textOutput(outputId = "textOutput3"),                       #display dynamic text output
+              showcase = bsicons::bs_icon("calendar-week-fill", fill = "#000000") #add icon
+            )
+          )
+        )
       )
     )),
-    
-    # Tab for geographic map of cases
-    tabPanel("Cases",
-             
-             sidebarLayout(
-               sidebarPanel(
-                 
-                 # Format sidebar into rows
-                 fluidRow(
-                   # Title above selection
-                   h4("View", style = "margin-top: -5px; margin-bottom: 10px;"),
-                   
-                   # Input for road type and fill parameters
-                   selectInput(inputId = "Road",
-                               label = "Road Type",
-                               choices = road_choices),
-                   selectInput(inputId = "Fill2",
-                               label = "Color by:",
-                               choices = fill_choice3,
-                               selected = "Weather")),
-                 
-                 # 2nd row in sidebar
-                 fluidRow(
-                   # Title for selection
-                   h4("Fatalities"),
-                   
-                   # Split selections into columns next to each other
-                   column(6,
-                     numericInput(inputId = "MinVal", 
-                                  label = "Minimum ",
-                                  value = 1,
-                                  min = 0,
-                                  max = 20,
-                                  width = "80px")),
-                   column(6,
-                     numericInput(inputId = "MaxVal", 
-                                  label = "Maximum ",
-                                  value = 20,
-                                  min = 0,
-                                  max = 20,
-                                  width = "80px")))
-                 ),
-               
-               # wrap output and display plot 
-               mainPanel(
+      
+      # Tab for geographic map of cases
+      nav_panel("Cases",
+                
+                page_sidebar(    
+                  sidebar = sidebar(
+                    
+                    # Format sidebar into rows
+                    fluidRow(
+                      # Title above selection
+                      h4("View", style = "margin-top: -5px; margin-bottom: 10px;"),
+                      
+                      # Input for road type and fill parameters
+                      selectInput(inputId = "Road",
+                                  label = "Road Type",
+                                  choices = road_choices),
+                      selectInput(inputId = "Fill2",
+                                  label = "Color by:",
+                                  choices = fill_choice3,
+                                  selected = "Weather")),
+                    
+                    # 2nd row in sidebar
+                    fluidRow(
+                      # Title for selection
+                      h4("Fatalities"),
+                      
+                      sliderInput(inputId = "Range",
+                                  label = NULL,
+                                  min = 1, max = 15,
+                                  value = c(1, 15))
+                    )),
+                  
+                  # wrap output and display plot 
                   tags$div(
                     style = "border: 1px solid #D3D3D3; padding: 15px; border-radius: 5px; background-color: #FFFFFF;",
                     textOutput("none"),
                     tmapOutput("case_map",
                                height = "85vh"),  # Fit plot to 85% height of window
-    ))
-  ))
-))
+                  )
+                ))
+)
 
 # Define server logic required to draw a histogram
-server <- function(input, output) {
+server <- function(input, output, session) {
+  
   
   # 3rd dropdown on first tab
   # dynamic selection for user depending on subject
   output$sub_subjects <- renderUI({
     
-    selected <- names(subject_choice[which(subject_choice == input$Subject)])
-    
-    choices <- unique(accident5[[input$Subject]])
-    
-    selectInput(inputId = "Sub_Subjects",
-                label = selected,
-                choices = choices)
-    
+      selected <- names(subject_choice[which(subject_choice == input$Subject)])
+      
+      choices <- unique(accident5[[input$Subject]])
+      
+      selectInput(inputId = "Sub_Subjects",
+                  label = selected,
+                  choices = choices)
+
   })
   
   output$location <- renderGirafe({
@@ -238,16 +303,30 @@ server <- function(input, output) {
     if (input$Location1 == "United States"){
       
       # require certain inputs prior to running
-      req(input$Location1, input$Subject, input$Sub_Subjects, input$Fill)
+      req(input$Location1, input$Subject, input$Fill)
       
-      # data manipulation, filter to user input, calculate stats
-      accident6 <- accident5 %>%
-        group_by(STATENAME, !!sym(input$Subject)) %>%
-        summarise(count = n(), total = sum(FATALS)) %>%
-        mutate(STATENAME = tolower(STATENAME),
-               fatalcase = total / count,
-               prop = (total / sum(total)) * 100) %>%
-        filter(!!sym(input$Subject) == input$Sub_Subjects)
+      if(input$Subject != "Total"){
+        
+        # data manipulation, filter to user input, calculate stats
+        accident6 <- accident5 %>%
+          group_by(STATENAME, .data[[input$Subject]]) %>%
+          summarise(count = n(), total = sum(FATALS)) %>%
+          mutate(STATENAME = tolower(STATENAME),
+                 fatalcase = total / count,
+                 prop = (total / sum(total)) * 100) %>%
+          filter(.data[[input$Subject]] == input$Sub_Subjects)
+        
+      } else {
+        
+        # Filter to total stats by state
+        accident6 <- accident5 %>%
+          group_by(STATENAME) %>%
+          summarise(count = n(), total = sum(FATALS)) %>%
+          mutate(STATENAME = tolower(STATENAME),
+                 fatalcase = total / count,
+                 prop = (total / sum(total)) * 100)
+        
+      }
       
       # join data to map data after filtering
       accident6 <- accident6 %>%
@@ -360,31 +439,90 @@ server <- function(input, output) {
     
   })
   
+  # Text output for top left card
+  output$textOutput1 <- renderText({
+    
+    # filter and group to just month and total fatals
+    full1 <- accident5 %>%
+      filter(STATENAME %in% tolower(input$Location2)) %>%
+      group_by(MONTHNAME) %>%
+      summarize(total = sum(FATALS))
+    
+    # calculate average
+    avg <- round(sum(full1$total) / 12, 0)
+    
+    return(avg)
+  
+  })
+  
+  # text output for top middle card
+  output$textOutput2 <- renderText({
+    
+    # filter and group to weather entry with highest fatals
+    full2 <- accident5 %>%
+      filter(STATENAME %in% tolower(input$Location2)) %>%
+      group_by(WEATHERNAME) %>%
+      summarize(total = sum(FATALS)) %>%
+      filter(!WEATHERNAME %in% c("Clear", "Cloudy", "Unknown")) %>%
+      arrange(desc(total))%>%     # descending order by total fatals
+      slice(1)                    # keep only top entry
+    
+    # grab only weather condition
+    highest <- full2$WEATHERNAME[1]
+    
+    return(highest)
+    
+  })
+  
+  # text output for top right card
+  output$textOutput3 <- renderText({
+    
+    # filter and group to month entry with highest fatals
+    full3 <- accident5 %>%
+      filter(STATENAME %in% tolower(input$Location2)) %>%
+      group_by(MONTHNAME) %>%
+      summarize(total = sum(FATALS)) %>%
+      arrange(desc(total))%>%
+      slice(1)
+    
+    highest2 <- full3$MONTHNAME[1]
+    
+    return(highest2)
+    
+  })
+  
   output$Weather <- renderGirafe({
       
-    # filter data to state selection
+    # filter data to state selection, add stats
     full_weather <- accident5 %>%
       group_by(STATENAME, WEATHERNAME) %>%
       summarize(count = n()) %>%
-      filter(STATENAME == tolower(input$Location2),
-             WEATHERNAME != "Unknown")
+      filter(STATENAME %in% tolower(input$Location2),
+             WEATHERNAME != "Unknown") %>%
+      mutate(prop = round((count / sum(count)) * 100, 2),
+             STATENAME = str_to_title(STATENAME))
+      
     
     # bar plot for weather conditions by state
     w_plot <- ggplot(data = full_weather)+ 
-      aes(x = WEATHERNAME,
+      aes(x = STATENAME,
           y = count,
           fill = WEATHERNAME,
-          data_id = WEATHERNAME,
-          tooltip = paste("Accident Count:", count))+
-      geom_bar_interactive(stat = "identity")+
+          data_id = interaction(STATENAME, WEATHERNAME),
+          tooltip = paste("Weather Condition: ", WEATHERNAME,
+                          "\nAccident Proportion:", prop, "%"))+
+      geom_bar_interactive(stat = "identity", position = "fill")+
       scale_fill_paletteer_d("ggthemes::Classic_Cyclic")+
       theme_minimal()+
-      theme(axis.text.x = element_text(angle = 45, hjust = 0.75),
-            legend.position = "none")+
-      labs(title = paste(str_to_title(input$Location2),
-                         " Fatal Accident Cases by Weather Condition"),
-           x = "Weather Condition",
-           y = "Accident Count")
+      theme(axis.text.x = element_text(angle = 45,
+                                       hjust = 0.75,
+                                       size = 10),
+            axis.title.y = element_text(size = 15),
+            plot.title = element_text(size = 16))+
+      labs(title = "Fatal Accident Cases by Weather Condition",
+           x = NULL,
+           y = "Accident Proportion",
+           fill = "Condition")
       
     # generate ggiraph plot
     girafe(ggobj = w_plot,
@@ -398,33 +536,44 @@ server <- function(input, output) {
     # Filter to month data by state, keeping fatality count
     full_month <- accident5 %>%
       group_by(STATENAME, MONTHNAME) %>%
-      summarize(count = n()) %>%
+      summarize(fatalcase = sum(FATALS), count = n()) %>%
       mutate(MONTHNAME = factor(MONTHNAME, levels = month.name)) %>%
-      filter(STATENAME == tolower(input$Location3))
-   
+      filter(STATENAME %in% tolower(input$Location2)) %>%
+      mutate(prop = round((count / sum(count)) * 100, 2),
+             STATENAME = str_to_title(STATENAME))
+
     # plot for monthly trend of fatalities by state 
     w_plot <- ggplot(data = full_month)+ 
       aes(x = MONTHNAME,
-          y = count,
-          fill = MONTHNAME,
-          group = 1,
-          data_id = MONTHNAME,
-          tooltip = paste("Accident Count:", count))+
-      geom_line(linewidth = 1, color = "red")+
-      geom_point_interactive(size = 3)+
+          y = .data[[input$monthStat]],
+          group = STATENAME,
+          data_id = interaction(STATENAME, MONTHNAME),
+          tooltip = paste("State: ", STATENAME,
+                          "\nMonth: ", MONTHNAME,
+                          "\n",
+                          names(fill_choice[which(fill_choice == input$monthStat)]),
+                          ":", .data[[input$monthStat]]))+
+      geom_line(aes(color = STATENAME), linewidth = 1)+
+      geom_point_interactive(size = 2)+
       ylim(0, NA)+
       scale_x_discrete(limits = month.name) +
       theme_minimal()+
-      theme(axis.text.x = element_text(angle = 45, hjust = 0.75),
-            legend.position = "none")+
-      labs(title = paste(str_to_title(input$Location3),
-                         "Fatal Accident Cases by Month"),
-           x = "Month",
-           y = "Accident Count")
+      theme(axis.text.x = element_text(angle = 45,
+                                       hjust = 0.75,
+                                       size = 10),
+            axis.title.y = element_text(size = 15),
+            plot.title = element_text(size = 16))+
+      labs(title = paste(names(fill_choice[which(fill_choice == input$monthStat)]),
+                         "by Month"),
+           x = NULL,
+           y = names(fill_choice[which(fill_choice == input$monthStat)]),
+           color = "State")
     
     #generate ggiraph plot
     girafe(ggobj = w_plot,
-           options = list(opts_hover(css = "fill:green;stroke:black")))
+           options = list(opts_hover(css = "fill:green;stroke:black"),
+                          opts_zoom(min = 1, max = 20, duration = 300),
+                          opts_selection(type = "none")))
     
     
   })
@@ -433,8 +582,8 @@ server <- function(input, output) {
     new_data <- reactive({
       accident3 %>%
       filter(ROUTENA %in% c(input$Road),
-             FATALS >= input$MinVal,
-             FATALS <= input$MaxVal) %>%
+             FATALS <= max(input$Range),
+             FATALS >= min(input$Range)) %>%
       mutate(ST_CASE = as.character(ST_CASE))
     })
   
@@ -481,7 +630,7 @@ server <- function(input, output) {
                                    "Fatalities: " = "FATALS",
                                    "Weather: " = "WEATHER",
                                    "Month: " = "MONTHNA"),
-                    title = "Road Type")+
+                    title = names(fill_choice3[which(fill_choice3 == input$Fill2)]))+
             # background map
             tm_basemap("Esri.WorldTopoMap")
         }

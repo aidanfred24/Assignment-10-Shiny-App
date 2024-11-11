@@ -9,7 +9,6 @@
 
 # library for shiny and theme
 library(shiny)
-library(shinythemes)
 library(ggplot2)
 library(ggiraph)
 library(tidyverse)
@@ -21,6 +20,7 @@ library(tmap)
 library(sf)
 library(bslib)
 library(gridlayout)
+library(shinycssloaders)
 
 #libraries for simple interactive plots
 
@@ -109,9 +109,11 @@ ui <- page_navbar(
                                                  choices = fill_choice),
                   ),
                   
-                  # plot map on main panel
-                  # plot output
-                  girafeOutput("location", height = "85vh") %>%
+                  # plot output with loading symbol and wrapped box
+                  withSpinner(girafeOutput("location", height = "85vh"),
+                              type = 4,
+                              color = "#000000",
+                              size = 3) %>%
                     tags$div(
                       style = "border: 1px solid #D3D3D3; padding: 15px; border-radius: 5px; background-color: #FFFFFF;")
                 ))
@@ -131,6 +133,10 @@ ui <- page_navbar(
                        selected = c("alabama",
                                     "california",
                                     "arizona")),
+        
+        # Add reset button for quicker transitions
+        actionButton(inputId = "reset", 
+                     label = "Reset"),
         
         # input to modify y-axis of trendline
         selectInput(inputId = "monthStat",
@@ -185,16 +191,20 @@ ui <- page_navbar(
               grid_card(
                 area = "area0",
                 
-                # display plot
-                card_body(girafeOutput(outputId = "Weather", height = "53vh"))
+                # display plot with loading spinner
+                card_body(withSpinner(girafeOutput(outputId = "Weather", height = "53vh"),
+                                      type = 4,
+                                      color = "#000000"))
               ),
               
               # card for second plot
               grid_card(
                 area = "area1",
                 
-                # display plot
-                card_body(girafeOutput(outputId = "Month", height = "53vh"))
+                # display plot with loading spinner
+                card_body(withSpinner(girafeOutput(outputId = "Month", height = "53vh"),
+                                      type = 4,
+                                      color = "#000000"))
               )
             )
           )
@@ -273,8 +283,11 @@ ui <- page_navbar(
                   tags$div(
                     style = "border: 1px solid #D3D3D3; padding: 15px; border-radius: 5px; background-color: #FFFFFF;",
                     textOutput("none"),
-                    tmapOutput("case_map",
-                               height = "85vh"),  # Fit plot to 85% height of window
+                    withSpinner(tmapOutput("case_map",
+                                           height = "85vh"),
+                               type = 4,
+                               color = "#000000",
+                               size = 3),  # Fit plot to 85% height of window
                   )
                 ))
 )
@@ -529,6 +542,13 @@ server <- function(input, output, session) {
            options = list(opts_hover(css = "fill:green;stroke:black")))
     
     
+  })
+  
+  # update input to default location values
+  observeEvent(input$reset, {
+    updateSelectInput(session, "Location2", selected = c("alabama",
+                                                      "california",
+                                                      "arizona"))
   })
   
   output$Month <- renderGirafe({

@@ -81,6 +81,9 @@ road_choices <- unique(accident3$ROUTENA)
 fill_choice3 <- setNames(c("MONTHNA", "DAY_WEE", "WEATHER"),
                          c("Month", "Day", "Weather Conditions"))
 
+y_lims <- setNames(c(1, 0, 0), 
+                   c("Fatalities Per Case", "% of Fatalities", "Total Cases"))
+
 #------------------------------------
 
 # App UI
@@ -573,10 +576,11 @@ server <- function(input, output, session) {
     # Filter to month data by state, keeping fatality count
     full_month <- accident5 %>%
       group_by(STATENAME, MONTHNAME) %>%
-      summarize(fatalcase = sum(FATALS), count = n()) %>%
+      summarize(total = sum(FATALS), count = n()) %>%
       mutate(MONTHNAME = factor(MONTHNAME, levels = month.name)) %>%
       filter(STATENAME %in% tolower(input$Location2)) %>%
-      mutate(prop = round((count / sum(count)) * 100, 2),
+      mutate(prop = round((total / sum(total)) * 100, 2),
+             fatalcase = round((total / count), 2),
              STATENAME = str_to_title(STATENAME))
 
     # plot for monthly trend of fatalities by state 
@@ -592,7 +596,7 @@ server <- function(input, output, session) {
                           ":", .data[[input$monthStat]]))+
       geom_line(aes(color = STATENAME), linewidth = 1)+
       geom_point_interactive(size = 2)+
-      ylim(0, NA)+
+      ylim(y_lims[names(fill_choice[which(fill_choice == input$monthStat)])], NA)+
       scale_x_discrete(limits = month.name) +
       theme_minimal()+
       theme(axis.text.x = element_text(angle = 45,

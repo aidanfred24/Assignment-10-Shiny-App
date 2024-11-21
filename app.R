@@ -559,7 +559,7 @@ server <- function(input, output, session) {
     # generate ggiraph plot
     girafe(ggobj = w_plot,
            options = list(opts_hover(css = "fill:green;stroke:black"),
-                          opts_selection(type = "none")))
+                          opts_selection(type = "none")))   # remove selection options
     
     
   })
@@ -588,7 +588,7 @@ server <- function(input, output, session) {
       aes(x = MONTHNAME,
           y = .data[[input$monthStat]],
           group = STATENAME,
-          data_id = interaction(STATENAME, MONTHNAME),
+          data_id = interaction(STATENAME, MONTHNAME),  # interactive elements by state and month
           tooltip = paste("State: ", STATENAME,
                           "\nMonth: ", MONTHNAME,
                           "\n",
